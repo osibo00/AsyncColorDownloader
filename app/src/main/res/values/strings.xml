@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">AsyncColorDownloader</string>
+    <string name="loading">Getting Colors…</string>
+    <string name="start_again">Start Again</string>
+</resources>
