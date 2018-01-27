@@ -15,13 +15,22 @@ import java.util.HashMap;
 
 public class ColorDataBase extends SQLiteOpenHelper {
 
-    private static final String DATABASE_NAME = "colors.db";
+    public static final String DATABASE_NAME = "colors.db";
     private static final String TABLE_NAME = "color_table";
     private static final String NAME_COLUMN = "color_names";
     private static final String VALUE_COLUMN = "color_values";
     private static final int SCHEMA_VERSION = 1;
 
-    public ColorDataBase(Context context) {
+    private static ColorDataBase instance;
+
+    public static synchronized ColorDataBase getInstance(Context context) {
+        if (instance == null) {
+            instance = new ColorDataBase(context.getApplicationContext());
+        }
+        return instance;
+    }
+
+    private ColorDataBase(Context context) {
         super(context, DATABASE_NAME, null, SCHEMA_VERSION);
     }
 

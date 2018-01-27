@@ -1,187 +1,151 @@
 package productions.darthplagueis.asynccolordownloader;
 
 import android.graphics.Color;
-import android.os.AsyncTask;
+import android.graphics.drawable.ColorDrawable;
+import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.lang.ref.WeakReference;
-import java.lang.reflect.Type;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
+public class MainActivity extends AppCompatActivity implements AsyncFragment.TaskStatusCallBack {
 
-public class MainActivity extends AppCompatActivity {
-
-    private static ColorDataBase colorDataBase;
+    private AsyncFragment asyncFragment;
+    private ProgressBar progressBar;
+    private LinearLayout topLayout;
+    private RelativeLayout bottomLayout;
+    private TextView topText;
+    private TextView bottomText;
+    private Button button;
+    private final String TAG_PROGRESS_BAR = "progress_bar";
+    private final String TAG_TOP_LAYOUT = "top_layout";
+    private final String TAG_BOTTOM_LAYOUT = "bottom_layout";
+    private final String TAG_TOP_TEXT = "top_text";
+    private final String TAG_TOP_TEXT01 = "top_text01";
+    private final String TAG_BOTTOM_TEXT = "bottom_text";
+    private final String TAG_BUTTON = "button";
+    private final String TAG_BUTTON01 = "button01";
+    private final String TAG_DID_COLORS_DOWNLOAD = "did_colors_download";
+    private boolean didColorsDownload = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ColorDownloader downloader = new ColorDownloader(this);
-        downloader.execute("https://raw.githubusercontent.com/operable/cog/master/priv/css-color-names.json");
-    }
+        progressBar = findViewById(R.id.progress_bar);
+        topLayout = findViewById(R.id.top_layout);
+        bottomLayout = findViewById(R.id.bottom_layout);
+        topText = findViewById(R.id.top_text_view);
+        bottomText = findViewById(R.id.bottom_text_view);
+        button = findViewById(R.id.main_button);
 
-    private static class ColorDownloader extends AsyncTask<String, Void, String> {
-
-        private WeakReference<MainActivity> activityReference;
-
-        // only retain a weak reference to the activity
-        // allows for there not to be context leaks
-        ColorDownloader(MainActivity context) {
-            activityReference = new WeakReference<>(context);
-        }
-
-        @Override
-        protected String doInBackground(String... strings) {
-            return colorDownload(strings[0]);
-        }
-
-        @Override
-        protected void onPostExecute(String data) {
-            MainActivity activity = activityReference.get();
-            if (activity == null) return;
-            if (data == null) {
-                Toast.makeText(activity, "Data is null", Toast.LENGTH_LONG).show();
-                return;
-            }
-            Type collectionType = new TypeToken<HashMap<String, String>>() {
-            }.getType();
-            Gson gson = new Gson();
-            HashMap<String, String> hexColors = gson.fromJson(new StringReader(data), collectionType);
-            colorDataBase = new ColorDataBase(activity);
-            for (Map.Entry<String, String> entry : hexColors.entrySet()) {
-                colorDataBase.insertColor(entry.getKey(), entry.getValue());
-            }
-            ColorSwitcher colorSwitcher = new ColorSwitcher(activity);
-            colorSwitcher.execute();
-        }
-
-        private String colorDownload(String urlString) {
-            InputStream inputStream = null;
+        if (savedInstanceState != null) {
+            progressBar.setVisibility(savedInstanceState.getInt(TAG_PROGRESS_BAR));
             try {
-                URL url = new URL(urlString);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                connection.connect();
-                inputStream = connection.getInputStream();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-                StringBuilder strings = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    strings.append(line);
-                }
-                return new String(strings);
-            } catch (Exception e) {
-                return null;
-            } finally {
-                if (inputStream != null) {
-                    try {
-                        inputStream.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-    }
-
-    private static class ColorSwitcher extends AsyncTask<Void, String, Void> {
-
-        private WeakReference<MainActivity> activityReference;
-
-        ColorSwitcher(MainActivity context) {
-            activityReference = new WeakReference<>(context);
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            MainActivity activity = activityReference.get();
-            if (activity == null) return;
-            ProgressBar progressBar = activity.findViewById(R.id.progress_bar);
-            LinearLayout topLayout = activity.findViewById(R.id.top_layout);
-            TextView bottomText = activity.findViewById(R.id.bottom_text_view);
-            Button button = activity.findViewById(R.id.main_button);
-            progressBar.setVisibility(View.INVISIBLE);
-            topLayout.setVisibility(View.VISIBLE);
-            bottomText.setVisibility(View.VISIBLE);
-            button.setVisibility(View.INVISIBLE);
-        }
-
-        @Override
-        protected Void doInBackground(Void... voids) {
-            try {
-                int count = 0;
-                HashMap<String, String> colorValuesMap = colorDataBase.getColorMap();
-                for (String color : colorValuesMap.keySet()) {
-                    publishProgress(colorValuesMap.get(color), color, String.valueOf(count++));
-                    Thread.sleep(150);
-                }
-            } catch (InterruptedException e) {
+                didColorsDownload = savedInstanceState.getBoolean(TAG_DID_COLORS_DOWNLOAD);
+                topLayout.setVisibility(savedInstanceState.getIntArray(TAG_TOP_LAYOUT)[0]);
+                topLayout.setBackgroundColor(savedInstanceState.getIntArray(TAG_TOP_LAYOUT)[1]);
+                bottomLayout.setVisibility(savedInstanceState.getIntArray(TAG_BOTTOM_LAYOUT)[0]);
+                bottomLayout.setBackgroundColor(savedInstanceState.getIntArray(TAG_BOTTOM_LAYOUT)[1]);
+                topText.setVisibility(savedInstanceState.getIntArray(TAG_TOP_TEXT)[0]);
+                topText.setTextColor(savedInstanceState.getIntArray(TAG_TOP_TEXT)[1]);
+                topText.setText(savedInstanceState.getString(TAG_TOP_TEXT01));
+                bottomText.setVisibility(savedInstanceState.getIntArray(TAG_BOTTOM_TEXT)[0]);
+                bottomText.setTextColor(savedInstanceState.getIntArray(TAG_BOTTOM_TEXT)[1]);
+                button.setVisibility(savedInstanceState.getIntArray(TAG_BUTTON)[0]);
+                button.setBackgroundColor(savedInstanceState.getIntArray(TAG_BUTTON)[1]);
+                button.setText(savedInstanceState.getString(TAG_BUTTON01));
+            } catch (NullPointerException e) {
                 e.printStackTrace();
             }
-            return null;
         }
 
-        @Override
-        protected void onProgressUpdate(String... values) {
-            MainActivity activity = activityReference.get();
-            if (activity == null) return;
-            LinearLayout topLayout = activity.findViewById(R.id.top_layout);
-            LinearLayout bottomLayout = activity.findViewById(R.id.bottom_layout);
-            TextView topText = activity.findViewById(R.id.top_text_view);
-            TextView bottomText = activity.findViewById(R.id.bottom_text_view);
-            topLayout.setBackgroundColor(Color.parseColor(values[0]));
-            bottomLayout.setBackgroundColor(Color.parseColor(newColor(values[0])));
-            topText.setText(values[1]);
-            bottomText.setTextColor(Color.parseColor(values[0]));
-            bottomText.setText(values[2]);
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        asyncFragment = (AsyncFragment) fragmentManager
+                .findFragmentByTag(AsyncFragment.TAG_ASYNC_FRAGMENT);
+        if (asyncFragment == null) {
+            asyncFragment = new AsyncFragment();
+            fragmentManager.beginTransaction()
+                    .add(asyncFragment, AsyncFragment.TAG_ASYNC_FRAGMENT)
+                    .commit();
         }
 
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            super.onPostExecute(aVoid);
-            MainActivity activity = activityReference.get();
-            if (activity == null) return;
-            TextView topText = activity.findViewById(R.id.top_text_view);
-            TextView bottomText = activity.findViewById(R.id.bottom_text_view);
-            Button button = activity.findViewById(R.id.main_button);
-            String done = "Done!";
-            int currentTextColor = bottomText.getCurrentTextColor();
-            topText.setTextColor(Color.BLACK);
-            topText.setText(done);
-            bottomText.setVisibility(View.GONE);
-            button.setVisibility(View.VISIBLE);
-            button.setBackgroundColor(currentTextColor);
+        if (!didColorsDownload) {
+            if (asyncFragment != null) {
+                asyncFragment.startColorDownloadTask();
+                didColorsDownload = true;
+            }
         }
+    }
 
-        private String newColor(String color) {
-            StringBuilder sb = new StringBuilder(color);
-            sb.insert(1, "66");
-            return sb.toString();
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(TAG_DID_COLORS_DOWNLOAD, didColorsDownload);
+        outState.putInt(TAG_PROGRESS_BAR, progressBar.getVisibility());
+        int[] topLayoutArray = new int[]{topLayout.getVisibility(), ((ColorDrawable) topLayout.getBackground()).getColor()};
+        outState.putIntArray(TAG_TOP_LAYOUT, topLayoutArray);
+        int[] bottomLayoutArray = new int[]{bottomLayout.getVisibility(), ((ColorDrawable) bottomLayout.getBackground()).getColor()};
+        outState.putIntArray(TAG_BOTTOM_LAYOUT, bottomLayoutArray);
+        int[] topTextArray = new int[]{topText.getVisibility(), topText.getCurrentTextColor()};
+        outState.putIntArray(TAG_TOP_TEXT, topTextArray);
+        outState.putString(TAG_TOP_TEXT01, topText.getText().toString());
+        int[] bottomTextArray = new int[]{bottomText.getVisibility(), bottomText.getCurrentTextColor()};
+        outState.putIntArray(TAG_BOTTOM_TEXT, bottomTextArray);
+        int[] buttonArray = new int[]{button.getVisibility(), ((ColorDrawable) topLayout.getBackground()).getColor()};
+        outState.putIntArray(TAG_BUTTON, buttonArray);
+        outState.putString(TAG_BUTTON01, button.getText().toString());
+    }
+
+    @Override
+    public void onPreExecute() {
+        progressBar.setVisibility(View.VISIBLE);
+        topLayout.setVisibility(View.VISIBLE);
+        bottomText.setVisibility(View.VISIBLE);
+        button.setVisibility(View.VISIBLE);
+        button.setText(null);
+    }
+
+    @Override
+    public void onProgressUpdate(String hexValue, String colorName, String newColor, String count) {
+        progressBar.getIndeterminateDrawable().setColorFilter(Color.parseColor(hexValue), android.graphics.PorterDuff.Mode.MULTIPLY);
+        topLayout.setBackgroundColor(Color.parseColor(hexValue));
+        bottomLayout.setBackgroundColor(Color.parseColor(newColor));
+        topText.setText(colorName);
+        bottomText.setTextColor(Color.parseColor(hexValue));
+        bottomText.setText(count);
+        button.setBackgroundColor(Color.parseColor(hexValue));
+    }
+
+    @Override
+    public void onPostExecute() {
+        progressBar.setVisibility(View.GONE);
+        topText.setTextColor(Color.BLACK);
+        String done = "Done!";
+        topText.setText(done);
+        bottomText.setVisibility(View.GONE);
+        button.setVisibility(View.VISIBLE);
+        button.setTextColor(Color.BLACK);
+        button.setText(getString(R.string.start_again_spaced));
+        if (asyncFragment != null) {
+            asyncFragment.updateExecutingStatus(false);
         }
+    }
+
+    @Override
+    public void onCancelled() {
+
     }
 
     public void buttonOnClick(View view) {
-        ColorSwitcher colorSwitcher = new ColorSwitcher(this);
-        colorSwitcher.execute();
+        if (asyncFragment != null) {
+            asyncFragment.startColorSwitcherTask();
+        }
     }
 }
